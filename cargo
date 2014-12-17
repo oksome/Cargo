@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+# This file is part of Cargo.
+#
+# Copyright (C) 2014 OKso (http://okso.me)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+
+doc = '''Cargo Linux Containers Manager
+
+Usage:
+    cargo status
+    cargo create <name>
+    cargo start <name>
+    cargo build <name>
+
+Options:
+    -h --help       Show this screen.
+    -v --version    Show version.
+'''
+
+import lxc
+from os import system
+from docopt import docopt
+
+
+def copy_postinstall(name):
+    system('sudo cp -p lxc-postinstall.sh '
+           #'$HOME/.local/share/lxc/{}/rootfs/root/lxc-postinstall.sh'
+           '/var/lib/lxc/{}/rootfs/root/lxc-postinstall.sh'
+            .format(name))
+
+
+def run_postinstall(name):
+    system('sudo lxc-attach -n {} -- /root/lxc-postinstall.sh'
+            .format(name))
+
+
+def build(name):
+    c = lxc.Container(name)
+    c.create('download', args={'dist': 'ubuntu', 'release': 'trusty', 'arch': 'amd64'})
+    c.start()
+    copy_postinstall(c.name)
+    run_postinstall(c.name)
+
+
+if __name__ == '__main__':
+    arguments = docopt(doc)
+
+    if arguments['build']:
+        build(arguments['<name>'])
+
